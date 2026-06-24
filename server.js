@@ -121,12 +121,7 @@ fastify.listen(
 );
 
 fastify.post("/scrape", async (request, reply) => {
-  const deckCode = request.body.url;
-  const url = `https://www.pokemon-card.com/deck/deck.html?deckID=${deckCode}`;
-
-  if (!deckCode) {
-    return reply.status(400).send({ error: "URL is required" });
-  }
+  const url = request.body.url;
 
   try {
     const browser = await puppeteer.launch({
@@ -145,17 +140,9 @@ fastify.post("/scrape", async (request, reply) => {
 
     await page.goto(url, { waitUntil: "domcontentloaded" });
 
-    // DOMが完全に読み込まれるまで待機
-    await page.waitForSelector("#cardImagesView");
-
     // JavaScript実行後のDOMを取得
     const bodyHTML = await page.evaluate(() => {
-        const container = document.querySelector("#cardImagesView");
-
-        container.querySelectorAll("img").forEach(img => {
-          const imgUrl = new URL(img.src,document.baseURI);
-          img.src = imgUrl.href;
-        });
+        const container = document;
 
         return container.innerHTML;
       }

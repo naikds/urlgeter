@@ -7,6 +7,42 @@
 </head>
 
 <body>
+<input class="inputText" type="text" id="urlInput" name="url" onClick="this.select()">
+<button onclick="setDeckLoad()">実行</button>
+
+<div id="outDocument">
+
+</div>
+
+<script>
+function setDeckLoad(){
+  //入力されたurlを読み込み
+  const url = document.getElementById('urlInput').value;
+
+  //serverへの情報取得開始
+  fetch('/scrape', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ url: url })
+  })
+    .then(response => response.json())
+    .then(data => {
+      //取得結果の解析
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(data.body, 'text/html');
+
+      const out = document.getElementById('outDocument');
+      out.innerHTML = doc.body.innerHTML;
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    })
+    .finally(() => {
+    });
+}
+</script>
 
 </body>
 
