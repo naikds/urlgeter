@@ -122,7 +122,6 @@ fastify.listen(
 
 fastify.post("/scrape", async (request, reply) => {
   const url = request.body.url;
-  if (!url) return reply.status(400).send({ error: "URL is required" });
 
   try {
     const browser = await puppeteer.launch({
@@ -130,20 +129,21 @@ fastify.post("/scrape", async (request, reply) => {
     });
     const page = await browser.newPage();
 
+    // 画像やフォントはブロックして軽量化（CSS は残す）
     await page.setRequestInterception(true);
     page.on('request', (req) => {
-      if (req.resourceType() === 'font') {
+      if (['image', 'font'].includes(req.resourceType())) {
         req.abort();
       } else {
         req.continue();
       }
     });
 
+    // JS 実行後の DOM を待つ
     await page.goto(url, { waitUntil: "networkidle2", timeout: 20000 });
 
-    const html = await page.evaluate(() => {
-      return document.documentElement.innerHTML;
-    });
+    // 表示された DOM 全体を取得
+    const html = await page.content();
 
     await browser.close();
     return reply.send({ body: html });
