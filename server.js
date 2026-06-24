@@ -122,6 +122,41 @@ fastify.listen(
 
 fastify.post("/scrape", async (request, reply) => {
   const url = request.body.url;
+  if (!url) return reply.status(400).send({ error: "URL is required" });
+
+  try {
+    const browser = await puppeteer.launch({
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+    const page = await browser.newPage();
+
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      if (req.resourceType() === 'font') {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 20000 });
+
+    const html = await page.evaluate(() => {
+      return document.documentElement.innerHTML;
+    });
+
+    await browser.close();
+    return reply.send({ body: html });
+
+  } catch (error) {
+    console.error("Error:", error);
+    return reply.status(500).send({ error: "Scraping failed" });
+  }
+});
+
+
+fastify.post("/scrape2", async (request, reply) => {
+  const url = request.body.url;
 
   try {
     const browser = await puppeteer.launch({
